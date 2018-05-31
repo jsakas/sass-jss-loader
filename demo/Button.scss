@@ -1,0 +1,16 @@
+$button-bg: #94d500;
+// $button-type: #141414;
+$button-size: 25px;
+$button-padding: 5px 25px;
+$button-margin: 15px 0;
+
+.Button {
+  margin: $button-margin;
+  
+  &__button {
+    padding: $button-padding;
+    font-size: $button-size;
+    background: $button-bg;
+    // color: $button-type;
+  }
+}
