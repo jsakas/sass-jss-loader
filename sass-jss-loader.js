@@ -24,9 +24,11 @@ const themeFactory = (variables) => {
 }
 
 module.exports = function (source) {
-  const css = sass.renderSync({ data: source });
+  const options = loaderUtils.getOptions(this);
+  const sassOptions = options.sass || {};
+  const css = sass.renderSync({ data: source, ...sassOptions });
   const root = postcss.parse(source);
-  
+
   /**
    * Remove `.` from CSS class names, so it can be accessed as an object property
    * with dot syntax in the component
@@ -35,7 +37,6 @@ module.exports = function (source) {
     rule.replaceWith(rule.clone({ selector: rule.selector.replace('.', '') }))
   })
   const newCss = root.toResult().css;
-
 
   const jss = jssCli.cssToJss({ 
     code: sass.renderSync({ 
@@ -55,9 +56,8 @@ module.exports = function (source) {
     hashMap[md5(decl.prop)] = decl.prop;
     decl.replaceWith(decl.clone({ value: hash }));
   });
-  
   const sassTemplate = root.toResult();
-  const cssTemplate = sass.renderSync({ data: sassTemplate.css }).css.toString();
+  const cssTemplate = sass.renderSync({ data: sassTemplate.css, ...sassOptions }).css.toString();
 
   const hashedJss = jssCli.cssToJss({ code: cssTemplate })['@global']
 
@@ -76,7 +76,7 @@ module.exports = function (source) {
     const styles = ${styles.toString()};
     const themeFactory = ${themeFactory.toString()};
 
-    export { themeFactory, jss }
+    export { themeFactory, defaults }
     export default styles
   `;
 
