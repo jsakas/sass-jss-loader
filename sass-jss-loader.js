@@ -3,24 +3,28 @@ const path = require('path');
 const postcss = require('postcss');
 const md5 = require('js-md5');
 const sass = require('node-sass');
-const jssCli = require('jss-cli');
+const cssToJss = require('./node_modules/jss-cli/lib/cssToJss');
 const loaderUtils = require('loader-utils');
 
 const themeFactory = (variables) => {
-  let replaced = JSON.stringify(template);
+  let theme = JSON.stringify(template);
 
-  for (let hash in hashMap) {
-    const userVar = variables[hashMap[hash]];
-    const fallback = defaults[hashMap[hash]]
+  for (let sassVar in defaultSassVars) {
+    const userVar = variables[sassVar];
+    const defaultVar = defaultSassVars[sassVar];
+    const hashedVar = hashMap[sassVar];
+    const regExp = new RegExp(hashedVar, 'g');
 
+    let replaced;
     if (userVar) {
-      replaced = replaced.replace(new RegExp(hash, 'g'), userVar)
+      replaced = theme.replace(regExp, userVar);
     } else {
-      replaced = replaced.replace(new RegExp(hash, 'g'), fallback)
+      replaced = theme.replace(regExp, defaultVar);
     }
+    theme = replaced;
   }
 
-  return JSON.parse(replaced);
+  return JSON.parse(theme);
 }
 
 module.exports = function (source) {
@@ -38,30 +42,34 @@ module.exports = function (source) {
   })
   const newCss = root.toResult().css;
 
-  const jss = jssCli.cssToJss({ 
+  const jss = cssToJss({ 
     code: sass.renderSync({ 
       data: root.toResult().css 
     }).css.toString() 
   })['@global'];
 
   const hashMap = {};
-  const defaults = {};
+  const defaultSassVars = {};
 
   /**
-   * Replace all variables with a hashed value, and store the defaults in an object
+   * Replace all variables with a hashed value, and create hash map and default variable map. 
+   * 
+   * Why? We need a full CSS file with no sass variables (sass won't replace strings), so we 
+   * convert them to hashes and store a hash map for later use. 
    */
   root.walkDecls(/\$/, decl => {
-    const hash = md5(decl.prop);
-    defaults[decl.prop] = decl.value
-    hashMap[md5(decl.prop)] = decl.prop;
+    // need to prefix with __ because postcss is doing something strange with the string
+    const hash = `__${md5(decl.prop)}`;
+    defaultSassVars[decl.prop] = decl.value
+    hashMap[decl.prop] = hash;
     decl.replaceWith(decl.clone({ value: hash }));
   });
   const sassTemplate = root.toResult();
   const cssTemplate = sass.renderSync({ data: sassTemplate.css, ...sassOptions }).css.toString();
 
-  const hashedJss = jssCli.cssToJss({ code: cssTemplate })['@global']
+  const hashedJss = cssToJss({ code: cssTemplate })['@global']
 
-  const styles = (theme) => {
+  const styles = (theme = {}) => {
     if (Object.keys(theme).length) {
       return theme;
     }
@@ -72,17 +80,23 @@ module.exports = function (source) {
     const jss = ${JSON.stringify(jss)};
     const template = ${JSON.stringify(hashedJss)};
     const hashMap = ${JSON.stringify(hashMap)};
-    const defaults = ${JSON.stringify(defaults)};
+    const defaultSassVars = ${JSON.stringify(defaultSassVars)};
     const styles = ${styles.toString()};
     const themeFactory = ${themeFactory.toString()};
 
-    export { themeFactory, defaults }
-    export default styles
+    Object.defineProperty(exports, "__esModule", {
+      value: true
+    });
+    exports.themeFactory = themeFactory;
+    exports.defaultSassVars = defaultSassVars;
+    exports.default = styles;
   `;
 
   // DEBUG / TEST TOOL, write the generated ES6 to file
-  options.debug && fs.writeFile(options.debug, output);
+  if (options.debug) {
+    const prettier = require('prettier');
+    fs.writeFileSync(options.debug, prettier.format(output, { parser: 'babylon' } ));
+  }
 
   return output;
 };
-
