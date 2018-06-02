@@ -1,7 +1,6 @@
-import React, { Component, Fragment } from 'react';
-import injectSheet, { withTheme, ThemeProvider } from 'react-jss';
-import { channel } from 'theming';
-import styles, { jss, themeFactory } from './Button.scss';
+import React, { Component } from 'react';
+import injectSheet from 'react-jss';
+import styles, { themeFactory } from './Button.scss';
 
 @injectSheet(styles)
 class Button extends Component {
@@ -24,7 +23,6 @@ class Button extends Component {
 Button.themeFactory = themeFactory;
 Button.defaultProps = {
   classes: {},
-  theme: {},
 };
 
 export default Button;

@@ -1,11 +1,10 @@
 const path = require('path');
 const fs = require('fs');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   mode: 'none',
   entry: {
-    index: path.resolve(__dirname, 'demo/index.js'),
+    index: path.resolve(__dirname, 'index.js'),
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -23,10 +22,15 @@ module.exports = {
       {
         test: /\.scss$/,
         use: [
-          path.join(__dirname, 'sass-jss-loader.js'),
+          // 'sass-jss-loader',
+          path.join(__dirname, '../sass-jss-loader.js'),
         ],
       },
     ],
+  },
+  devServer: {
+    contentBase: path.join(__dirname),
+    port: 1234,
   },
   externals: [],
   plugins: [],

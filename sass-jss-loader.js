@@ -24,7 +24,7 @@ const themeFactory = (variables) => {
 }
 
 module.exports = function (source) {
-  const options = loaderUtils.getOptions(this);
+  const options = loaderUtils.getOptions(this) || {};
   const sassOptions = options.sass || {};
   const css = sass.renderSync({ data: source, ...sassOptions });
   const root = postcss.parse(source);
@@ -80,8 +80,8 @@ module.exports = function (source) {
     export default styles
   `;
 
-  // DEBUG TOOL, write the generated ES6 to output.json
-  // fs.writeFile('./output.js', output);
+  // DEBUG / TEST TOOL, write the generated ES6 to file
+  options.debug && fs.writeFile(options.debug, output);
 
   return output;
 };

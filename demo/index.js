@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import ReactDOM from 'react-dom';
-import injectSheet, { jss, ThemeProvider } from 'react-jss';
+import { ThemeProvider } from 'react-jss';
 import Button from './Button';
 
 class App extends Component {
