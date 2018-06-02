@@ -1,5 +1,11 @@
+@import 'test/variables';
+
 $color-1: red;
+$padding-1: 10px;
+$number: 10;
 
 .Button {
   background: $color-1;
+  padding: $padding-1;
 }
+
