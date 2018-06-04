@@ -1,0 +1,65 @@
+const jss = {
+  Button: { margin: "15px 0" },
+  Button__button: {
+    padding: "5px 25px",
+    fontSize: "25px",
+    background: "#94d500",
+    fontFamily: '"Arial Black", sans-serif'
+  }
+};
+const template = {
+  Button: { margin: "__19ccd5a7fc413429322d2cdd4b0e2a31" },
+  Button__button: {
+    padding: "__d60e54e45156c8cf0c19f2664b6a7d32",
+    fontSize: "__f52d56f383775e0b3dbe631ea679a6e6",
+    background: "__be0f6ce5f02c5ed13e67feb77e6abad9",
+    fontFamily: "__4a23d5ffecdf90db53035ac06563a37f"
+  }
+};
+const hashMap = {
+  "$font-primary": "__4a23d5ffecdf90db53035ac06563a37f",
+  "$button-bg": "__be0f6ce5f02c5ed13e67feb77e6abad9",
+  "$button-size": "__f52d56f383775e0b3dbe631ea679a6e6",
+  "$button-padding": "__d60e54e45156c8cf0c19f2664b6a7d32",
+  "$button-margin": "__19ccd5a7fc413429322d2cdd4b0e2a31"
+};
+const defaultSassVars = {
+  "$font-primary": "'Arial Black', sans-serif",
+  "$button-bg": "#94d500",
+  "$button-size": "25px",
+  "$button-padding": "5px 25px",
+  "$button-margin": "15px 0"
+};
+const styles = (theme = {}) => {
+  if (Object.keys(theme).length) {
+    return theme;
+  }
+  return jss;
+};
+const themeFactory = variables => {
+  let theme = JSON.stringify(template);
+
+  for (let sassVar in defaultSassVars) {
+    const userVar = variables[sassVar];
+    const defaultVar = defaultSassVars[sassVar];
+    const hashedVar = hashMap[sassVar];
+    const regExp = new RegExp(hashedVar, "g");
+
+    let replaced;
+    if (userVar) {
+      replaced = theme.replace(regExp, userVar);
+    } else {
+      replaced = theme.replace(regExp, defaultVar);
+    }
+    theme = replaced;
+  }
+
+  return JSON.parse(theme);
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.themeFactory = themeFactory;
+exports.defaultSassVars = defaultSassVars;
+exports.default = styles;

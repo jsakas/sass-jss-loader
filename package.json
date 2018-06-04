@@ -24,6 +24,7 @@
     "js-md5": "0.7.3",
     "jss-cli": "5.0.1",
     "loader-utils": "1.1.0",
+    "postcss-import": "11.1.0",
     "query-ast": "1.0.1",
     "scss-parser": "1.0.0"
   },

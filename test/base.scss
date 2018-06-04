@@ -1,4 +1,4 @@
-@import 'test/variables';
+@import 'variables.scss';
 
 $color-1: red;
 $padding-1: 10px;
@@ -9,3 +9,6 @@ $number: 10;
   padding: $padding-1;
 }
 
+.ClassWithImportedVariable {
+  background: $imported-var;
+}

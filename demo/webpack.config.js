@@ -23,7 +23,12 @@ module.exports = {
         test: /\.scss$/,
         use: [
           // 'sass-jss-loader',
-          path.join(__dirname, '../sass-jss-loader.js'),
+          {
+            loader: path.join(__dirname, '../sass-jss-loader.js'),
+            options: {
+              debug: path.resolve(__dirname, 'loader.debug'),
+            }
+          }
         ],
       },
     ],

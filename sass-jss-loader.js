@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const postcss = require('postcss');
+const atImport = require('postcss-import');
 const md5 = require('js-md5');
 const sass = require('node-sass');
 const cssToJss = require('./node_modules/jss-cli/lib/cssToJss');
@@ -27,11 +28,22 @@ const themeFactory = (variables) => {
   return JSON.parse(theme);
 }
 
-module.exports = function (source) {
+module.exports = async function (source) {
+  const cssProcessor = postcss().use(atImport());
   const options = loaderUtils.getOptions(this) || {};
   const sassOptions = options.sass || {};
-  const css = sass.renderSync({ data: source, ...sassOptions });
-  const root = postcss.parse(source);
+
+  let { root, css, } = await cssProcessor.process(source, { 
+      from: this.resourcePath,
+    })
+    .then(result => {
+      return {
+        root:  postcss.parse(result),
+        css: sass.renderSync({ data: result.toString(), ...sassOptions }),
+      }
+
+    })
+    .catch(console.error);
 
   /**
    * Remove `.` from CSS class names, so it can be accessed as an object property
@@ -50,7 +62,7 @@ module.exports = function (source) {
 
   const hashMap = {};
   const defaultSassVars = {};
-
+  
   /**
    * Replace all variables with a hashed value, and create hash map and default variable map. 
    * 
@@ -64,6 +76,7 @@ module.exports = function (source) {
     hashMap[decl.prop] = hash;
     decl.replaceWith(decl.clone({ value: hash }));
   });
+
   const sassTemplate = root.toResult();
   const cssTemplate = sass.renderSync({ data: sassTemplate.css, ...sassOptions }).css.toString();
 
@@ -95,7 +108,7 @@ module.exports = function (source) {
   // DEBUG / TEST TOOL, write the generated ES6 to file
   if (options.debug) {
     const prettier = require('prettier');
-    fs.writeFileSync(options.debug, prettier.format(output, { parser: 'babylon' } ));
+    await fs.writeFileSync(options.debug, prettier.format(output, { parser: 'babylon' } ));
   }
 
   return output;

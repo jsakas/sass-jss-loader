@@ -2,26 +2,35 @@ const fs = require('fs');
 const path = require('path');
 let sassJssLoader = require('./sass-jss-loader');
 
-// bind query to loader, "query" is used in loader-utils as "options"
+/**
+ * MOCK WEBPACK OPTIONS
+ * bind stuff to `loaderContext` from the docs (aka `this`)
+ * query = options
+ * resourcePath = the file being loaded
+ */
 sassJssLoader = sassJssLoader.bind({
   query: {
-    debug: './test/module.js',
+    debug: path.resolve(__dirname, 'test/module.js'),
     sass: {
       includePaths: [
         path.resolve(__dirname),
       ]
     }
-  }
+  },
+  resourcePath: path.resolve(__dirname, 'test/base.scss'),
 })
 
-// load a test sass file
-// side effect: creates module.js from above
-sassJssLoader(fs.readFileSync('./test/base.scss', 'utf8'));
-
-// require the generated module
-const testModule = require('./test/module')
-
+let testModule;
 describe('sass-jss-loader', () => {
+  beforeAll(async () => {
+    // load a test sass file
+    // side effect: creates module.js from above
+    await sassJssLoader(fs.readFileSync('./test/base.scss', 'utf8'));
+
+    // require the module we just generated
+    testModule = require('./test/module');
+  })
+
   it('exports a default function that returns a JSS object of the compiled sass', () => {
     const jss = testModule.default();
     expect(jss.Button.background).toBe('red');
