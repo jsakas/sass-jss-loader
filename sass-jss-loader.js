@@ -4,7 +4,7 @@ const postcss = require('postcss');
 const atImport = require('postcss-import');
 const md5 = require('js-md5');
 const sass = require('node-sass');
-const cssToJss = require('./node_modules/jss-cli/lib/cssToJss');
+const cssToJss = require('jss-cli/lib/cssToJss');
 const loaderUtils = require('loader-utils');
 
 const themeFactory = (variables) => {
