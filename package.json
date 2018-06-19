@@ -24,6 +24,7 @@
     "camelcase-css": "2.0.0",
     "js-md5": "0.7.3",
     "loader-utils": "1.1.0",
+    "postcss-discard-comments": "2.0.4",
     "postcss-easy-import": "https://github.com/jsakas/postcss-easy-import#postcss-import-11",
     "postcss-import": "11.1.0",
     "prejss": "1.4.0",
@@ -31,6 +32,7 @@
     "scss-parser": "1.0.0"
   },
   "devDependencies": {
+    "@material/elevation": "0.36.1",
     "babel": "6.23.0",
     "babel-cli": "6.26.0",
     "babel-core": "6.26.3",

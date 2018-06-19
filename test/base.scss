@@ -3,6 +3,7 @@
 $color-1: red;
 $padding-1: 10px;
 $number: 10;
+$font-family: "Arial", sans-serif;
 
 .Button {
   color: white;
@@ -12,4 +13,8 @@ $number: 10;
 
 .ClassWithImportedVariable {
   background: $imported-var;
+}
+
+.ClassWithFontFamily {
+  font-family: $font-family;
 }

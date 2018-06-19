@@ -44,6 +44,10 @@ describe('sass-jss-loader', () => {
     expect(typeof jss.ClassWithImportedVariable.background).toBe('function');
   });
 
+  it('can work with font-family', () => {
+    expect(typeof jss.ClassWithFontFamily.fontFamily).toBe('function');
+  });
+
   /**
    * TODO - https://github.com/postcss/postcss-scss/issues/90
    * 

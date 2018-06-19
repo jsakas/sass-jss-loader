@@ -3,6 +3,7 @@ const path = require('path');
 const postcss = require('postcss');
 const postcssScss = require('postcss-scss');
 const easyImport = require('postcss-easy-import');
+const comments = require('postcss-discard-comments');
 const sass = require('node-sass');
 const { preJSS } = require('prejss');
 const loaderUtils = require('loader-utils');
@@ -20,6 +21,7 @@ const templateStrings = (root) => {
       console.info(`skipping, ${decl.prop}: map function is not yet supported.`)
       return 
     }
+
     sassVars[decl.prop] = decl.value;
   });
 
@@ -32,11 +34,13 @@ const templateStrings = (root) => {
             (props) => {
               return (props.theme && props.theme.${camelName})
                 ? props.theme.${camelName}
-                : '${sassVars[decl.value]}'
+                : '${sassVars[decl.value].replace('!default', '')}'
             }
           }
         "}
-      `;
+      `
+        .replace(/\s\s+/g, ' ')
+        .replace(/\n/g, '');
 
       decl.replaceWith(decl.clone({
         value: hackSass,
@@ -60,6 +64,27 @@ const removeDot = (root) => {
 }
 
 /**
+ * Convert `{ 'button:hover': {} }` to { button: { '&:hover': {} } }
+ */
+const convertPsuedoSelectors = (obj) => {
+  return Object.keys(obj)
+    .reduce((acc, k) => {
+      if (typeof k === 'string' && k.includes(':')) {
+        const arr = k.split(':');
+        const selector = arr.shift()
+
+        acc[selector] = {
+          ...acc[selector],
+          ['&:' + arr.join(':')]: convertPsuedoSelectors(obj[k])
+        }
+
+        return acc;
+      }
+      acc[k] = obj[k];
+      return acc;
+    }, {})
+}
+/**
  * Relpace function to be used in JSON.stringify.
  * 
  * Makes funtions a parsable string that we can find and convert back to functions later.
@@ -73,6 +98,7 @@ const replacer = (key, val) => {
 }
 
 module.exports = async function (source) {
+  console.log('Sass -> Jss is attempting to load', this.resourcePath);
   const callback = this.async();
   const options = loaderUtils.getOptions(this) || {};
   const sassOptions = options.sass || {};
@@ -80,13 +106,13 @@ module.exports = async function (source) {
 
   // Allow us to fail but not hold up other Webpack processes
   const failGracefully = (e) => {
-    console.error(e);
+    console.error('‼️   Sass -> JSS Failed :: ', e);
     return callback(null, 'module.exports = {}');
   }
 
   // Promise debug to file
   const debug = (filename) => (r) => {
-    fs.writeFileSync(path.resolve(__dirname, 'debug', filename), r);
+    fs.writeFileSync(path.resolve(__dirname, 'debug', filename), r.toString());
     return r;
   }
 
@@ -112,17 +138,24 @@ module.exports = async function (source) {
     .use(templateStrings)
     .use(easyImport(importOptions))
     .use(removeDot)
+    .use(comments({
+      removeAll: true,
+    }))
     .process(source, {
       syntax: postcssScss,
       from: this.resourcePath,
     })
+    // .then(debug('SASS.scss'))
     .then(r => sass.renderSync({ data: r.toString(), ...sassOptions }).css.toString())
-    .then(r => eval('preJSS`' + r  + '`'))
+    // .then(debug('CSS.css'))
+    .then(r => eval('preJSS`' + r + '`'))
+    .then(convertPsuedoSelectors)
+    // .then(debug('JS.js'))
     .catch(failGracefully)
 
   const output = `
     module.exports = ${
-      JSON.stringify(JSS, replacer, '  ')
+      JSON.stringify(JSS || {}, replacer, '  ')
       .replace(/\"___/g, '')
       .replace(/___\"/g, '')
     }

@@ -1,6 +1,8 @@
 @import 'base.scss';
+@import '@material/elevation/mixins';
 
 $button-bg: #94d500;
+$button-bg-hover: orange;
 $button-size: 25px;
 $button-padding: 25px;
 $button-margin: 20px;
@@ -13,7 +15,12 @@ $button-margin: 20px;
     font-size: $button-size;
     background: $button-bg;
 
+    &:hover {
+      background: $button-bg-hover;
+    }
+
     // external variable comes from base
     font-family: $font-primary;
+    @include mdc-elevation(4);
   }
 }
