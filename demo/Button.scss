@@ -2,14 +2,14 @@
 
 $button-bg: #94d500;
 $button-size: 25px;
-$button-padding: 5px 25px;
-$button-margin: 15px 0;
+$button-padding: 25px;
+$button-margin: 20px;
 
 .Button {
-  margin: $button-margin;
+  margin: $button-margin 0 $button-margin 0;
   
   &__button {
-    padding: $button-padding;
+    padding: 0 $button-padding 0 $button-padding;
     font-size: $button-size;
     background: $button-bg;
 

@@ -21,7 +21,6 @@ const templateStrings = (root) => {
       return 
     }
     sassVars[decl.prop] = decl.value;
-    decl.remove();
   });
 
   root.walkDecls(decl => {
@@ -118,7 +117,6 @@ module.exports = async function (source) {
       from: this.resourcePath,
     })
     .then(r => sass.renderSync({ data: r.toString(), ...sassOptions }).css.toString())
-    .then(debug('POSTCSS.scss'))
     .then(r => eval('preJSS`' + r  + '`'))
     .catch(failGracefully)
 
