@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import injectSheet from 'react-jss';
-import styles, { themeFactory } from './Button.scss';
+import styles from './Button.scss';
+
+console.log('Imported styles from Button.scss', styles);
 
 @injectSheet(styles)
 class Button extends Component {
@@ -20,7 +22,6 @@ class Button extends Component {
     )
   }
 }
-Button.themeFactory = themeFactory;
 Button.defaultProps = {
   classes: {},
 };

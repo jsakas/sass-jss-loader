@@ -1,115 +1,141 @@
 const fs = require('fs');
 const path = require('path');
 const postcss = require('postcss');
-const atImport = require('postcss-import');
-const md5 = require('js-md5');
+const postcssScss = require('postcss-scss');
+const easyImport = require('postcss-easy-import');
 const sass = require('node-sass');
-const cssToJss = require('jss-cli/lib/cssToJss');
+const { preJSS } = require('prejss');
 const loaderUtils = require('loader-utils');
+const camelCase = require('camelcase-css');
 
-const themeFactory = (variables) => {
-  let theme = JSON.stringify(template);
+/**
+ * Walk a PostCSS tree and convert and Sass variables to a javascript function.
+ * @param {Root} PostCSS Root 
+ */
+const templateStrings = (root) => {
+  let sassVars = {};
 
-  for (let sassVar in defaultSassVars) {
-    const userVar = variables[sassVar];
-    const defaultVar = defaultSassVars[sassVar];
-    const hashedVar = hashMap[sassVar];
-    const regExp = new RegExp(hashedVar, 'g');
-
-    let replaced;
-    if (userVar) {
-      replaced = theme.replace(regExp, userVar);
-    } else {
-      replaced = theme.replace(regExp, defaultVar);
+  root.walkDecls(/\$/, decl => {
+    if (decl.value.match(/^\((\n|\r|.)+\)$/gm)) {
+      console.info(`skipping, ${decl.prop}: map function is not yet supported.`)
+      return 
     }
-    theme = replaced;
+    sassVars[decl.prop] = decl.value;
+    decl.remove();
+  });
+
+  root.walkDecls(decl => {
+    const camelName = camelCase(decl.value).replace(/\$/g, '');
+    if (decl.value && Object.keys(sassVars).indexOf(decl.value) > -1) {
+      const hackSass = `
+        #{"
+          \${
+            (props) => {
+              return (props.theme && props.theme.${camelName})
+                ? props.theme.${camelName}
+                : '${sassVars[decl.value]}'
+            }
+          }
+        "}
+      `;
+
+      decl.replaceWith(decl.clone({
+        value: hackSass,
+      }));
+    }
+  })
+
+  return root;
+}
+
+/**
+ * Remove `.` from CSS class names, so it can be accessed as an object property
+ * with dot syntax in the component
+ */
+const removeDot = (root) => {
+  root.walkRules(/\./, rule => {
+    rule.replaceWith(rule.clone({ selector: rule.selector.replace('.', '') }))
+  });
+
+  return root;
+}
+
+/**
+ * Relpace function to be used in JSON.stringify.
+ * 
+ * Makes funtions a parsable string that we can find and convert back to functions later.
+ */
+const replacer = (key, val) => {
+  if (typeof val === 'function') {
+    return "___" + val.toString() + "___"
   }
 
-  return JSON.parse(theme);
+  return val;
 }
 
 module.exports = async function (source) {
-  const cssProcessor = postcss().use(atImport());
+  const callback = this.async();
   const options = loaderUtils.getOptions(this) || {};
   const sassOptions = options.sass || {};
+  const themeIgnorePaths = options.themeIgnorePaths || [];
 
-  let { root, css, } = await cssProcessor.process(source, { 
+  // Allow us to fail but not hold up other Webpack processes
+  const failGracefully = (e) => {
+    console.error(e);
+    return callback(null, 'module.exports = {}');
+  }
+
+  // Promise debug to file
+  const debug = (filename) => (r) => {
+    fs.writeFileSync(path.resolve(__dirname, 'debug', filename), r);
+    return r;
+  }
+
+  // Shared import options (because we import twice)
+  const importOptions = {
+    extensions: ['.css', '.scss'],
+    prefix: '_',
+  }
+
+  const JSS = await postcss()
+    .use(easyImport({
+      ...importOptions,
+      filter: (filePath) => {
+        let shouldImport = true;
+        themeIgnorePaths.forEach((ignorePath) => {
+          if (filePath.includes(ignorePath)) {
+            shouldImport = false;
+          }
+        })
+        return shouldImport;
+      }
+    }))
+    .use(templateStrings)
+    .use(easyImport(importOptions))
+    .use(removeDot)
+    .process(source, {
+      syntax: postcssScss,
       from: this.resourcePath,
     })
-    .then(result => {
-      return {
-        root:  postcss.parse(result),
-        css: sass.renderSync({ data: result.toString(), ...sassOptions }),
-      }
-
-    })
-    .catch(console.error);
-
-  /**
-   * Remove `.` from CSS class names, so it can be accessed as an object property
-   * with dot syntax in the component
-   */
-  root.walkRules(/\./, rule => {
-    rule.replaceWith(rule.clone({ selector: rule.selector.replace('.', '') }))
-  })
-  const newCss = root.toResult().css;
-
-  const jss = cssToJss({ 
-    code: sass.renderSync({ 
-      data: root.toResult().css 
-    }).css.toString() 
-  })['@global'];
-
-  const hashMap = {};
-  const defaultSassVars = {};
-  
-  /**
-   * Replace all variables with a hashed value, and create hash map and default variable map. 
-   * 
-   * Why? We need a full CSS file with no sass variables (sass won't replace strings), so we 
-   * convert them to hashes and store a hash map for later use. 
-   */
-  root.walkDecls(/\$/, decl => {
-    // need to prefix with __ because postcss is doing something strange with the string
-    const hash = `__${md5(decl.prop)}`;
-    defaultSassVars[decl.prop] = decl.value
-    hashMap[decl.prop] = hash;
-    decl.replaceWith(decl.clone({ value: hash }));
-  });
-
-  const sassTemplate = root.toResult();
-  const cssTemplate = sass.renderSync({ data: sassTemplate.css, ...sassOptions }).css.toString();
-
-  const hashedJss = cssToJss({ code: cssTemplate })['@global']
-
-  const styles = (theme = {}) => {
-    if (Object.keys(theme).length) {
-      return theme;
-    }
-    return jss; 
-  };
+    .then(r => sass.renderSync({ data: r.toString(), ...sassOptions }).css.toString())
+    .then(debug('POSTCSS.scss'))
+    .then(r => eval('preJSS`' + r  + '`'))
+    .catch(failGracefully)
 
   const output = `
-    const jss = ${JSON.stringify(jss)};
-    const template = ${JSON.stringify(hashedJss)};
-    const hashMap = ${JSON.stringify(hashMap)};
-    const defaultSassVars = ${JSON.stringify(defaultSassVars)};
-    const styles = ${styles.toString()};
-    const themeFactory = ${themeFactory.toString()};
-
-    Object.defineProperty(exports, "__esModule", {
-      value: true
-    });
-    exports.themeFactory = themeFactory;
-    exports.defaultSassVars = defaultSassVars;
-    exports.default = styles;
+    module.exports = ${
+      JSON.stringify(JSS, replacer, '  ')
+      .replace(/\"___/g, '')
+      .replace(/___\"/g, '')
+    }
   `;
 
   // DEBUG / TEST TOOL, write the generated ES6 to file
   if (options.debug) {
     const prettier = require('prettier');
-    await fs.writeFileSync(options.debug, prettier.format(output, { parser: 'babylon' } ));
+    fs.writeFileSync(options.debug, prettier.format(output, { parser: 'babylon' } ));
   }
 
-  return output;
+  callback(null, output);
+  return;
 };

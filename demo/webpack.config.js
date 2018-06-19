@@ -26,7 +26,10 @@ module.exports = {
           {
             loader: path.join(__dirname, '../sass-jss-loader.js'),
             options: {
-              debug: path.resolve(__dirname, 'loader.debug'),
+              debug: path.resolve(__dirname, '../debug', '_EXPORTS.js'),
+              themeIgnorePaths: [
+                '@material'
+              ]
             }
           }
         ],

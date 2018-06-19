@@ -18,9 +18,10 @@ sassJssLoader = sassJssLoader.bind({
     }
   },
   resourcePath: path.resolve(__dirname, 'test/base.scss'),
+  async: () => jest.fn(),
 })
 
-let testModule;
+let jss;
 describe('sass-jss-loader', () => {
   beforeAll(async () => {
     // load a test sass file
@@ -28,22 +29,19 @@ describe('sass-jss-loader', () => {
     await sassJssLoader(fs.readFileSync('./test/base.scss', 'utf8'));
 
     // require the module we just generated
-    testModule = require('./test/module');
+    jss = require('./test/module');
   })
 
-  it('exports a default function that returns a JSS object of the compiled sass', () => {
-    const jss = testModule.default();
-    expect(jss.Button.background).toBe('red');
-    expect(jss.Button.padding).toBe('10px');
+  it('exports a JSS object of the compiled sass', () => {
+    expect(jss.Button.color).toBe('white');
   });
 
-  it('exports a themeFactory that allows you to swap out variables', () => {
-    const jss = testModule.themeFactory({
-      '$color-1': 'blue',
-      '$padding-1': '20px',
-    })
-    expect(jss.Button.background).toBe('blue');
-    expect(jss.Button.padding).toBe('20px');
+  it('converts variables to functions that use props.theme', async () => {
+    expect(typeof jss.Button.background).toBe('function');
+  });
+
+  it('converts IMPORTED variables to functions that use props.theme', () => {
+    expect(typeof jss.ClassWithImportedVariable.background).toBe('function');
   });
 
   /**
@@ -59,8 +57,4 @@ describe('sass-jss-loader', () => {
       '$number': 20,
     }).Interpolated.margin).toBe('20rem');
   })
-
-  it('resolves variables from @import statements', () => {
-    expect(testModule.defaultSassVars).toHaveProperty('$imported-var');
-  });
 });

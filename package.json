@@ -21,10 +21,12 @@
   },
   "homepage": "https://github.com/jsakas/sass-jss-loader#readme",
   "dependencies": {
+    "camelcase-css": "2.0.0",
     "js-md5": "0.7.3",
-    "jss-cli": "5.0.1",
     "loader-utils": "1.1.0",
+    "postcss-easy-import": "https://github.com/jsakas/postcss-easy-import#postcss-import-11",
     "postcss-import": "11.1.0",
+    "prejss": "1.4.0",
     "query-ast": "1.0.1",
     "scss-parser": "1.0.0"
   },
