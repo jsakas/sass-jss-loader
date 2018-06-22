@@ -8,6 +8,7 @@ const sass = require('node-sass');
 const { preJSS } = require('prejss');
 const loaderUtils = require('loader-utils');
 const camelCase = require('camelcase-css');
+const nestSelectors = require('./lib/nestSelectors');
 
 /**
  * Walk a PostCSS tree and convert and Sass variables to a javascript function.
@@ -66,24 +67,33 @@ const removeDot = (root) => {
 /**
  * Convert `{ 'button:hover': {} }` to { button: { '&:hover': {} } }
  */
-const convertPsuedoSelectors = (obj) => {
-  return Object.keys(obj)
-    .reduce((acc, k) => {
-      if (typeof k === 'string' && k.includes(':')) {
-        const arr = k.split(':');
-        const selector = arr.shift()
+const convertPsuedoSelectors = (obj, selector = ':', prefix='') => {
+  console.log('convertPsuedoSelectors', JSON.stringify(obj, null, '  '));
+  const ret = {};
+  for (let k in obj) {
+    if (typeof k === 'string' && k.includes(selector)) {
+        const arr = k.split(selector);
+        let prop = arr.shift();
 
-        acc[selector] = {
-          ...acc[selector],
-          ['&:' + arr.join(':')]: convertPsuedoSelectors(obj[k])
+        if (prefix && prop.includes(prefix)) {
+            prop = arr.shift();
         }
 
-        return acc;
-      }
-      acc[k] = obj[k];
-      return acc;
-    }, {})
+        const key = `${prefix}${prefix && selector}${arr.join(selector)}`;
+        let next = {
+            // ...obj[key],
+            [key]: obj[k]
+        }
+
+        ret[`${prefix}${prefix && selector}${prop}`] = arr.length > 1 
+            ? convertPsuedoSelectors(next, selector, prefix='&')
+            : next;
+    }
+  }
+  return ret;
 }
+
+
 /**
  * Relpace function to be used in JSON.stringify.
  * 
@@ -149,8 +159,24 @@ module.exports = async function (source) {
     .then(r => sass.renderSync({ data: r.toString(), ...sassOptions }).css.toString())
     // .then(debug('CSS.css'))
     .then(r => eval('preJSS`' + r + '`'))
-    .then(convertPsuedoSelectors)
-    // .then(debug('JS.js'))
+    .then(nestSelectors)
+    // .then(r => nestSelectors(r, '~'))
+    // .then(r => {
+    //   let r1 = nestSelectors(r, ':');
+    //   let r2 = nestSelectors(r1, '~');
+    //   return r2;
+
+    // //   return [':', '::', '+', '~'].reduce((acc, k) => {
+    // //     console.log('scanning for', k);
+    // //     return convertPsuedoSelectors(acc, k)
+    // //   }, r)
+    // })
+
+    .then(r => {
+      // console.log(r);
+      return r;
+    })
+    .then(debug('JS.js'))
     .catch(failGracefully)
 
   const output = `
