@@ -159,6 +159,11 @@ module.exports = async function (source) {
     .then(r => sass.renderSync({ data: r.toString(), ...sassOptions }).css.toString())
     // .then(debug('CSS.css'))
     .then(r => eval('preJSS`' + r + '`'))
+    .then(r => {
+      console.log('PRE NEST SELECTORS')
+      console.log(r);
+      return r;
+    })
     .then(nestSelectors)
     // .then(r => nestSelectors(r, '~'))
     // .then(r => {
@@ -173,7 +178,8 @@ module.exports = async function (source) {
     // })
 
     .then(r => {
-      // console.log(r);
+      console.log('POST NEST SELECTORS')
+      console.log(r);
       return r;
     })
     .then(debug('JS.js'))
