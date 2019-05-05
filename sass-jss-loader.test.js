@@ -48,6 +48,20 @@ describe('sass-jss-loader', () => {
     expect(typeof jss.ClassWithFontFamily.fontFamily).toBe('function');
   });
 
+  it.only('can work with nested selectors', () => {
+    console.log(JSON.stringify(jss, null, ' '));
+    expect(true).toBe(true);
+    // expect(jss.Child).toEqual({
+    //   color: 'red',
+    // })
+
+    // expect(jss.Parent).toEqual({
+    //   '&:hover $Child': {
+    //     color: 'blue',
+    //   }
+    // })
+  })
+
   /**
    * TODO - https://github.com/postcss/postcss-scss/issues/90
    * 

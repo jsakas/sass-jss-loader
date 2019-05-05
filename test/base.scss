@@ -18,3 +18,15 @@ $font-family: "Arial", sans-serif;
 .ClassWithFontFamily {
   font-family: $font-family;
 }
+
+.Parent {
+  .Child {
+    color: red;
+  }
+  
+  &:hover {
+    .Child {
+      color: blue;
+    }
+  }
+}

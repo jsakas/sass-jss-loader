@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
 import injectSheet from 'react-jss';
-import styles from './Button.scss';
+import jss from 'jss';
+import jssNested from 'jss-nested';
+// import styles from './Button.scss';
 
-console.log('Imported styles from Button.scss', styles);
+jss.setup(jssNested());
+
+// console.log('Imported styles from Button.scss', styles);
 
 const styles_2 = {
   Button: { margin: '20px 0 20px 0' },
@@ -22,13 +26,31 @@ const styles_2 = {
   }
 }
 
-const styles_3 = 
-  {
-    '.button span': { color: 'blue' },
-    '.button:hover span': { color: 'red' }
-  }
+// const styles_3 = {
+//   button: {
+//     // span: {
+//       color: 'blue', 
+//     },
+//   }
+//   // '.button span': { color: 'blue' },
+//   // '.button:hover span': { color: 'red' }
+// }
 
-@injectSheet(styles_2)
+const styles_4 = {
+  button: {
+    '&:hover $someClass': {
+       color: 'blue',
+    }
+  },
+  someClass: {
+    color: props => {
+      console.log('PROPS', props);
+      return props.theme && props.theme.buttonBg || 'orange' 
+    },
+  }
+}
+
+@injectSheet(styles_4)
 class Button extends Component {
   render() {
     let {
@@ -41,8 +63,8 @@ class Button extends Component {
 
     return (
       <div>
-        <button>
-          <span>HELLO WORLD</span>
+        <button className={classes.button}>
+          <span className={classes.someClass}>HELLO WORLD</span>
         </button>
       </div>
     )
